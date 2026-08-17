@@ -1,8 +1,8 @@
 export function getProvider(){
   const name=(process.env.AI_PROVIDER||'doubao').toLowerCase();
   const all={
-    doubao:{base:process.env.AI_BASE_URL||'https://ark.cn-beijing.volces.com/api/v3',key:process.env.AI_API_KEY||process.env.ARK_API_KEY||'',model:process.env.AI_MODEL||'doubao-seed-2-0-lite-260215'},
-    deepseek:{base:process.env.AI_BASE_URL||'https://api.deepseek.com',key:process.env.AI_API_KEY||process.env.DEEPSEEK_API_KEY||'',model:process.env.AI_MODEL||'deepseek-v4-flash'},
+    doubao:{base:process.env.AI_BASE_URL||'https://ark.cn-beijing.volces.com/api/v3',key:process.env.AI_API_KEY||process.env.ARK_API_KEY||'',model:process.env.AI_MODEL||'doubao-seed-2-0-pro-260215'},
+    deepseek:{base:process.env.AI_BASE_URL||'https://api.deepseek.com',key:process.env.AI_API_KEY||process.env.DEEPSEEK_API_KEY||'',model:process.env.AI_MODEL||'deepseek-chat'},
     qwen:{base:process.env.AI_BASE_URL||'https://dashscope.aliyuncs.com/compatible-mode/v1',key:process.env.AI_API_KEY||process.env.DASHSCOPE_API_KEY||'',model:process.env.AI_MODEL||'qwen-plus'}
   };
   if(!all[name]) throw new Error('AI_PROVIDER 仅支持 doubao / deepseek / qwen');
@@ -21,7 +21,7 @@ export async function chat(provider,messages){
 
 export async function doubaoImage(provider,prompt){
   if(provider.name!=='doubao') throw new Error('当前智能配图默认使用豆包 Seedream');
-  const model=process.env.IMAGE_MODEL||'doubao-seedream-4-0-250828';
+  const model=process.env.IMAGE_MODEL||'doubao-seedream-5-0-260128';
   const r=await fetch(`${provider.base.replace(/\/$/,'')}/images/generations`,{method:'POST',headers:{Authorization:`Bearer ${provider.key}`,'Content-Type':'application/json'},body:JSON.stringify({model,prompt,size:'2K',sequential_image_generation:'disabled',stream:false,response_format:'url',watermark:false})});
   const d=await r.json();
   if(!r.ok) throw new Error(d?.error?.message||`图片接口错误 ${r.status}`);
