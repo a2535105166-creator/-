@@ -1,0 +1,23 @@
+# Secrets / local environment
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+deploy/.env
+deploy/.env.*
+!deploy/.env.example
+
+# Node / logs
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
