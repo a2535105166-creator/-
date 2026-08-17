@@ -42,18 +42,25 @@ jobs:
       - name: Diagnose live backend
         shell: bash
         run: |
-          echo '=== GET /api/status ==='
-          curl -sS --connect-timeout 10 --max-time 25 -D - -o /tmp/status.json \
-            -H 'Origin: https://a2535105166-creator.github.io' \
-            https://115-190-56-127.sslip.io/api/status || true
+          set +e
+          echo '=== DNS ==='
+          getent ahosts 115-190-56-127.sslip.io || true
+          echo '=== TCP 80 ==='
+          timeout 8 bash -c '</dev/tcp/115.190.56.127/80' && echo 'TCP80 OK' || echo 'TCP80 FAIL'
+          echo '=== TCP 443 ==='
+          timeout 8 bash -c '</dev/tcp/115.190.56.127/443' && echo 'TCP443 OK' || echo 'TCP443 FAIL'
+          echo '=== HTTP BY IP ==='
+          curl -v --connect-timeout 8 --max-time 15 http://115.190.56.127/api/status 2>&1 | tail -n 30 || true
+          echo '=== HTTPS WITH SNI ==='
+          curl -vk --resolve 115-190-56-127.sslip.io:443:115.190.56.127 --connect-timeout 8 --max-time 20 https://115-190-56-127.sslip.io/api/status 2>&1 | tail -n 50 || true
+          echo '=== TLS HANDSHAKE ==='
+          timeout 15 openssl s_client -connect 115.190.56.127:443 -servername 115-190-56-127.sslip.io -brief </dev/null 2>&1 | tail -n 40 || true
+          echo '=== CORS GET ==='
+          curl -sS --connect-timeout 8 --max-time 20 -D - -o /tmp/status.json -H 'Origin: https://a2535105166-creator.github.io' https://115-190-56-127.sslip.io/api/status || true
           cat /tmp/status.json 2>/dev/null || true
           echo
-          echo '=== OPTIONS /api/generate ==='
-          curl -sS --connect-timeout 10 --max-time 25 -D - -o /dev/null -X OPTIONS \
-            -H 'Origin: https://a2535105166-creator.github.io' \
-            -H 'Access-Control-Request-Method: POST' \
-            -H 'Access-Control-Request-Headers: content-type' \
-            https://115-190-56-127.sslip.io/api/generate || true
+          echo '=== CORS OPTIONS ==='
+          curl -sS --connect-timeout 8 --max-time 20 -D - -o /dev/null -X OPTIONS -H 'Origin: https://a2535105166-creator.github.io' -H 'Access-Control-Request-Method: POST' -H 'Access-Control-Request-Headers: content-type' https://115-190-56-127.sslip.io/api/generate || true
 
       - name: Force fresh frontend assets
         shell: bash
