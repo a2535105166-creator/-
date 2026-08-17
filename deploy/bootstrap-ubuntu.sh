@@ -6,17 +6,26 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
+# 清理旧脚本误加的 Docker Ubuntu/Debian 官方源，避免 Debian Buster 404。
+rm -f /etc/apt/sources.list.d/docker.list /etc/apt/sources.list.d/docker.sources
+
 apt-get update
-apt-get install -y ca-certificates curl gnupg git
-install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-chmod a+r /etc/apt/keyrings/docker.gpg
-. /etc/os-release
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu ${VERSION_CODENAME} stable" > /etc/apt/sources.list.d/docker.list
-apt-get update
-apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+apt-get install -y ca-certificates curl git docker.io docker-compose
+
 systemctl enable --now docker
+
+# 验证 Docker 与 Compose。Debian Buster 通常提供 docker-compose 独立命令；
+# 新系统若已有 Compose plugin，也同时支持 docker compose。
+docker --version
+if docker compose version >/dev/null 2>&1; then
+  docker compose version
+elif command -v docker-compose >/dev/null 2>&1; then
+  docker-compose --version
+else
+  echo "Docker Compose 安装失败"
+  exit 1
+fi
 
 mkdir -p /opt/jikeyun
 
-echo "Docker 已安装。下一步把仓库放到 /opt/jikeyun，并配置 backend/.env 与 deploy/.env。"
+echo "Docker 已安装并启动。"
