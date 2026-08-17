@@ -3,47 +3,70 @@ import json
 import os
 import re
 import ssl
-import urllib.request
-import urllib.error
+import http.client
+from urllib.parse import urlparse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 PORT = int(os.environ.get('PORT', '3000'))
 ORIGINS = set(x.strip() for x in os.environ.get('ALLOWED_ORIGINS', 'https://a2535105166-creator.github.io').split(',') if x.strip())
 PROVIDER = os.environ.get('AI_PROVIDER', 'doubao').lower()
-API_KEY = os.environ.get('AI_API_KEY') or os.environ.get('ARK_API_KEY') or ''
-BASE_URL = os.environ.get('AI_BASE_URL', 'https://ark.cn-beijing.volces.com/api/v3').rstrip('/')
-TEXT_MODEL = os.environ.get('AI_MODEL', 'doubao-seed-2-0-pro-260215')
-IMAGE_MODEL = os.environ.get('IMAGE_MODEL', 'doubao-seedream-5-0-260128')
+API_KEY = (os.environ.get('AI_API_KEY') or os.environ.get('ARK_API_KEY') or '').strip()
+BASE_URL = os.environ.get('AI_BASE_URL', 'https://ark.cn-beijing.volces.com/api/v3').strip().rstrip('/')
+TEXT_MODEL = os.environ.get('AI_MODEL', 'doubao-seed-2-0-pro-260215').strip()
+IMAGE_MODEL = os.environ.get('IMAGE_MODEL', 'doubao-seedream-5-0-260128').strip()
 SSL_CONTEXT = ssl.create_default_context()
 
-SHAPE = '只返回JSON对象，不要Markdown。字段：title, subtitle, summary, coverCopy, keywords数组, seoDescription, aigcRisk(0-100), aigcAdvice, sections数组(3-8节，每节含heading/body/emphasis/imagePrompt/imageCaption), closing, cta。imagePrompt必须英文且不要要求图片中文字。aigcRisk只表示语言机械感/模板感启发式评分，不得声称是第三方检测。'
+SHAPE = '只返回JSON对象，不要Markdown。字段：title, subtitle, summary, coverCopy, keywords数组, seoDescription, aigcRisk(0-100), aigcAdvice, sections数组(3-8节，每节含heading/body/emphasis,imagePrompt,imageCaption), closing, cta。imagePrompt必须英文且不要要求图片中文字。aigcRisk只表示语言机械感/模板感启发式评分，不得声称是第三方检测。'
 
 def system_prompt(x):
     return '你是中文内容总监、公众号主编和排版策略师。平台：{}；风格：{}；篇幅：{}；品牌：{}。内容自然、有信息密度、有阅读节奏；不得虚构资质、数字、承诺或事实；标题有传播力但不标题党。{}'.format(
         x.get('platform', '微信公众号'), x.get('style', '高级'), x.get('length', '中等'), x.get('brand') or '未指定', SHAPE)
 
+def _ascii_header(name, value):
+    try:
+        value.encode('ascii')
+    except UnicodeEncodeError:
+        raise RuntimeError('{} 含有非ASCII字符，请重新配置。'.format(name))
+    return value
+
 def api_post(path, payload, timeout=120):
     if not API_KEY:
         raise RuntimeError('尚未配置 {} API Key'.format(PROVIDER))
-    body = json.dumps(payload, ensure_ascii=False).encode('utf-8')
-    req = urllib.request.Request(
-        BASE_URL + path,
-        data=body,
-        headers={'Authorization': 'Bearer ' + API_KEY, 'Content-Type': 'application/json'},
-        method='POST'
-    )
+    _ascii_header('API Key', API_KEY)
+
+    parsed = urlparse(BASE_URL)
+    if parsed.scheme != 'https' or not parsed.hostname:
+        raise RuntimeError('AI_BASE_URL 配置无效')
+
+    base_path = parsed.path.rstrip('/')
+    request_path = base_path + path
+    body = json.dumps(payload, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+    headers = {
+        'Authorization': _ascii_header('Authorization', 'Bearer ' + API_KEY),
+        'Content-Type': 'application/json; charset=utf-8',
+        'Accept': 'application/json',
+        'Content-Length': str(len(body)),
+        'User-Agent': 'JikeYunAI/2.1'
+    }
+
+    conn = http.client.HTTPSConnection(parsed.hostname, parsed.port or 443, timeout=timeout, context=SSL_CONTEXT)
     try:
-        with urllib.request.urlopen(req, timeout=timeout, context=SSL_CONTEXT) as resp:
-            return json.loads(resp.read().decode('utf-8'))
-    except urllib.error.HTTPError as e:
+        conn.request('POST', request_path, body=body, headers=headers)
+        resp = conn.getresponse()
+        raw = resp.read()
+        text = raw.decode('utf-8', errors='replace')
         try:
-            detail = json.loads(e.read().decode('utf-8'))
-            msg = detail.get('error', {}).get('message') or str(detail)
+            data = json.loads(text) if text else {}
         except Exception:
-            msg = 'HTTP {}'.format(e.code)
-        raise RuntimeError('模型接口错误：' + msg)
-    except urllib.error.URLError as e:
-        raise RuntimeError('连接模型服务失败：{}'.format(e.reason))
+            data = {'raw': text[:1000]}
+        if resp.status < 200 or resp.status >= 300:
+            msg = data.get('error', {}).get('message') if isinstance(data, dict) else None
+            raise RuntimeError('模型接口错误：{}'.format(msg or 'HTTP {} {}'.format(resp.status, text[:300])))
+        return data
+    except (OSError, ssl.SSLError, http.client.HTTPException) as e:
+        raise RuntimeError('连接模型服务失败：{}'.format(e))
+    finally:
+        conn.close()
 
 def chat(messages):
     data = api_post('/chat/completions', {'model': TEXT_MODEL, 'messages': messages, 'temperature': 0.7})
@@ -62,7 +85,10 @@ def parse_structured(text):
     a, b = text.find('{'), text.rfind('}')
     if a < 0 or b < a:
         raise RuntimeError('模型未返回结构化JSON')
-    return json.loads(text[a:b+1])
+    try:
+        return json.loads(text[a:b+1])
+    except json.JSONDecodeError as e:
+        raise RuntimeError('模型返回JSON解析失败：{}'.format(e))
 
 def generate_image(prompt):
     if PROVIDER != 'doubao':
@@ -82,7 +108,7 @@ def generate_image(prompt):
         raise RuntimeError('图片模型没有返回结果')
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = 'JikeYunAI/2.0'
+    server_version = 'JikeYunAI/2.1'
 
     def log_message(self, fmt, *args):
         print('%s - %s' % (self.address_string(), fmt % args))
@@ -119,6 +145,11 @@ class Handler(BaseHTTPRequestHandler):
             return json.loads(raw.decode('utf-8'))
         except Exception:
             raise RuntimeError('JSON格式错误')
+
+    def do_HEAD(self):
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.end_headers()
 
     def do_OPTIONS(self):
         self.send_response(204)
