@@ -3,57 +3,19 @@ const $$ = (s) => [...document.querySelectorAll(s)];
 
 const state = { article: null, tab: 'article', theme: 'blue', status: null };
 const themeColors = { blue:'#2457ff', red:'#e03a3e', green:'#1c9a6b', black:'#222222' };
+const API_BASE = String(window.JIKE_API_BASE || '').replace(/\/$/, '');
+const apiUrl = (path) => `${API_BASE}${path}`;
 
 function toast(message){
   const el = $('#toast'); el.textContent = message; el.classList.add('show');
   clearTimeout(window.__toast); window.__toast = setTimeout(()=>el.classList.remove('show'), 2200);
 }
 
-function demoArticle(input = {}){
-  const topic = String(input.prompt || '让内容更快、更好看、更容易发布').trim();
-  const platform = input.platform || '微信公众号';
-  const brand = String(input.brand || '').trim();
-  const who = brand ? `围绕“${brand}”` : '围绕你的主题';
-  return {
-    title: `${topic.slice(0, 22)}｜一篇可以直接发布的内容`,
-    subtitle: `面向${platform}的智能写作与参数化排版示例`,
-    summary: `${who}，从选题、结构、正文到配图建议和发布动作，统一在一个内容工作台里完成。`,
-    coverCopy: brand ? `${brand} · 内容成品` : '把一句需求，变成一篇成品',
-    keywords: [brand || 'AI写作', '公众号排版', '内容生产', '智能体', '自动配图'].filter(Boolean),
-    seoDescription: `${brand ? brand + '｜' : ''}AI写作、自动排版、智能配图、标题优化和SEO处理的一体化内容成品示例。`,
-    aigcRisk: 38,
-    aigcAdvice: '当前是网页演示模式。正式AI版接入服务端模型后，会依据文章内容给出更细的可读性与机械感优化建议。',
-    sections: [
-      { heading: '01｜先理解你真正要表达什么', body: `你只需要输入一句话，例如“${topic}”。系统会先拆解目标受众、发布平台、语气与核心信息，再组织成清晰的阅读结构。`, emphasis: '先理解，再创作，而不是直接堆文字。', imagePrompt: 'modern Chinese editorial workspace, AI content planning dashboard, premium clean design, editorial photography, no text', imageCaption: '内容策略与结构规划' },
-      { heading: '02｜正文与版式一次成型', body: '传统流程往往要在写作、找模板、调格式之间来回切换。极刻云将内容结构与参数化排版合并，让标题、摘要、正文层级、重点信息和手机预览在同一个页面完成。', emphasis: '内容结构由智能体规划，视觉落地由模板系统稳定呈现。', imagePrompt: 'premium mobile article layout, Chinese social media editor interface, white and blue palette, minimal editorial design, no text', imageCaption: '参数化排版稳定复用' },
-      { heading: '03｜把配图、SEO和发布合成一条链路', body: '文章生成后，系统同步整理封面文案、关键词、SEO描述和配图提示。你还可以继续润色、改写、自然化、精简，最后复制公众号内容或导出HTML。', emphasis: '最终交付的是可继续编辑、可预览、可导出的内容成品。', imagePrompt: 'content production pipeline, article images SEO publish workflow, futuristic minimal SaaS dashboard, clean premium UI, no text', imageCaption: '从创作到发布的一体化工作流' }
-    ],
-    closing: '真正高效的内容智能体，不是增加更多按钮，而是把整条内容生产链路缩短。',
-    cta: '现在输入你的主题，生成第一篇内容。'
-  };
-}
-
-function demoRevise(article, action){
-  const out = JSON.parse(JSON.stringify(article));
-  const labels = { polish:'已润色', rewrite:'已改写', humanize:'已自然化', concise:'已精简', seo:'已SEO优化' };
-  out.title = out.title.replace(/（已[^）]+）/g,'') + `（${labels[action] || '已优化'}）`;
-  out.aigcRisk = Math.max(15, Number(out.aigcRisk || 38) - 7);
-  out.aigcAdvice = '演示优化已应用。正式AI版会基于全文重新生成，而不是只调整标签。';
-  if(action==='concise') out.sections = out.sections.map(s=>({...s,body:s.body.replace(/。[^。]{24,}。/,'。')}));
-  return out;
-}
-
 async function fetchJson(url, options={}){
-  const body = options.body ? JSON.parse(options.body) : {};
-  await new Promise(r=>setTimeout(r, url.includes('generate') ? 550 : 260));
-  if(url.includes('/api/status') || url.includes('/api/health')) return {ok:true, mode:'demo', textModel:'网页版演示', imageEnabled:false};
-  if(url.includes('/api/generate')){
-    if(!body.prompt || String(body.prompt).trim().length < 2) throw new Error('请输入至少2个字的创作要求。');
-    return {mode:'demo', article:demoArticle(body)};
-  }
-  if(url.includes('/api/action')) return {mode:'demo', article:demoRevise(body.article, body.action)};
-  if(url.includes('/api/image')) throw new Error('网页版演示暂不生成真实图片；正式版接入服务端AI后启用。');
-  throw new Error('演示接口不存在');
+  const r = await fetch(apiUrl(url), { headers:{'Content-Type':'application/json'}, ...options });
+  const data = await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(data.error || '请求失败');
+  return data;
 }
 
 async function loadStatus(){
@@ -63,7 +25,11 @@ async function loadStatus(){
     badge.classList.add('live');
     badge.innerHTML = `<i></i> ${s.mode === 'live' ? 'AI已连接' : '演示模式'}`;
     $('#sideStatus').textContent = s.mode === 'live' ? `模型：${s.textModel}` : '演示模式 · 配Key后启用AI';
-  }catch(e){ $('#statusBadge').innerHTML='<i></i> 服务异常'; }
+  }catch(e){
+    $('#statusBadge').classList.remove('live');
+    $('#statusBadge').innerHTML='<i></i> AI后端待连接';
+    $('#sideStatus').textContent='真实版前端已上线 · 等待后端地址';
+  }
 }
 
 function escapeHtml(s=''){
