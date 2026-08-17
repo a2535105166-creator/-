@@ -23,6 +23,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+      - name: Force fresh frontend assets
+        shell: bash
+        run: |
+          VERSION="${GITHUB_SHA}"
+          sed -i "s#./config.js#./config.js?v=${VERSION}#g" index.html
+          sed -i "s#./app.js#./app.js?v=${VERSION}#g" index.html
+          sed -i "s#./styles.css#./styles.css?v=${VERSION}#g" index.html
       - name: Setup Pages
         uses: actions/configure-pages@v5
         with:
