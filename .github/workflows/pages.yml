@@ -23,6 +23,38 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+
+      - name: Harden live API connection
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app.js')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace("const API_BASE = String(window.JIKE_API_BASE || '').replace(/\\/$/, '');", "const API_BASE = String(window.JIKE_API_BASE || 'https://115-190-56-127.sslip.io').replace(/\\/$/, '');")
+          old="const r = await fetch(apiUrl(url), { headers:{'Content-Type':'application/json'}, ...options });"
+          new="const opts={cache:'no-store',...options}; if(opts.body){opts.headers={'Content-Type':'application/json',...(opts.headers||{})};} const r = await fetch(apiUrl(url), opts);"
+          if old in s:
+              s=s.replace(old,new)
+          p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Diagnose live backend
+        shell: bash
+        run: |
+          echo '=== GET /api/status ==='
+          curl -sS --connect-timeout 10 --max-time 25 -D - -o /tmp/status.json \
+            -H 'Origin: https://a2535105166-creator.github.io' \
+            https://115-190-56-127.sslip.io/api/status || true
+          cat /tmp/status.json 2>/dev/null || true
+          echo
+          echo '=== OPTIONS /api/generate ==='
+          curl -sS --connect-timeout 10 --max-time 25 -D - -o /dev/null -X OPTIONS \
+            -H 'Origin: https://a2535105166-creator.github.io' \
+            -H 'Access-Control-Request-Method: POST' \
+            -H 'Access-Control-Request-Headers: content-type' \
+            https://115-190-56-127.sslip.io/api/generate || true
+
       - name: Force fresh frontend assets
         shell: bash
         run: |
@@ -30,14 +62,17 @@ jobs:
           sed -i "s#./config.js#./config.js?v=${VERSION}#g" index.html
           sed -i "s#./app.js#./app.js?v=${VERSION}#g" index.html
           sed -i "s#./styles.css#./styles.css?v=${VERSION}#g" index.html
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
         with:
           enablement: true
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
           path: '.'
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
