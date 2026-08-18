@@ -55,6 +55,8 @@ jobs:
           sed -i "s#./config.js#./config.js?v=${VERSION}#g" index.html
           sed -i "s#./app.js#./app.js?v=${VERSION}#g" index.html
           sed -i "s#./styles.css#./styles.css?v=${VERSION}#g" index.html
+          sed -i "s#./wechat-studio.js#./wechat-studio.js?v=${VERSION}#g" index.html
+          sed -i "s#./wechat-studio.css#./wechat-studio.css?v=${VERSION}#g" index.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
