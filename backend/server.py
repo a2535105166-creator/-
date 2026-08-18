@@ -12,7 +12,7 @@ ORIGINS = set(x.strip() for x in os.environ.get('ALLOWED_ORIGINS', 'https://a253
 PROVIDER = os.environ.get('AI_PROVIDER', 'doubao').lower()
 API_KEY = (os.environ.get('AI_API_KEY') or os.environ.get('ARK_API_KEY') or '').strip()
 BASE_URL = os.environ.get('AI_BASE_URL', 'https://ark.cn-beijing.volces.com/api/v3').strip().rstrip('/')
-TEXT_MODEL = os.environ.get('AI_MODEL', 'doubao-seed-2-0-pro-260215').strip()
+TEXT_MODEL = os.environ.get('AI_MODEL', 'doubao-seed-2-1-pro-260628').strip()
 IMAGE_MODEL = os.environ.get('IMAGE_MODEL', 'doubao-seedream-5-0-260128').strip()
 SSL_CONTEXT = ssl.create_default_context()
 
