@@ -12,12 +12,12 @@
     <aside class="sidebar">
       <div class="brand"><div class="brand-mark">极</div><div><strong>极刻云</strong><span>CONTENT AGENT</span></div></div>
       <button class="new-task" id="newTask">＋ 新建创作</button>
-      <nav><div class="nav-label">智能工作流</div><button class="nav-item active" data-action="flow"><span>✦</span> AI全流程</button><button class="nav-item" data-action="write"><span>✎</span> AI写作</button><button class="nav-item" data-action="layout"><span>▦</span> 一键排版</button><button class="nav-item" data-action="image"><span>▧</span> 智能配图</button><button class="nav-item" data-action="title"><span>Ｔ</span> 标题工厂</button><button class="nav-item" data-action="seo"><span>⌁</span> SEO优化</button><button class="nav-item" data-action="humanize"><span>◎</span> AI痕迹优化</button></nav>
+      <nav><div class="nav-label">智能工作流</div><button class="nav-item active" data-action="flow"><span>✦</span> AI全流程</button><button class="nav-item" data-action="write"><span>✎</span> AI写作</button><button class="nav-item" data-action="layout"><span>▦</span> 公众号编辑</button><button class="nav-item" data-action="image"><span>▧</span> 智能配图</button><button class="nav-item" data-action="title"><span>Ｔ</span> 标题工厂</button><button class="nav-item" data-action="seo"><span>⌁</span> SEO优化</button><button class="nav-item" data-action="humanize"><span>◎</span> AI痕迹优化</button></nav>
       <div class="sidebar-card"><div class="mini-orb"></div><strong>极刻 AI 主编</strong><p>从一句需求到可发布成品。</p><span id="sideStatus">检测服务状态…</span></div>
-      <div class="side-footer">V2.5 · WECHAT STUDIO</div>
+      <div class="side-footer">V3.0 · WECHAT AGENT</div>
     </aside>
     <main class="workspace">
-      <header class="topbar"><div><h1>内容创作工作台</h1><p>AI写作 · 公众号模板 · 智能配图 · SEO · 富文本发布</p></div><div class="top-actions"><span class="status-badge" id="statusBadge"><i></i> 正在连接</span><button class="ghost" id="exportHtml">导出 HTML</button><button class="primary small" id="copyWechat">复制公众号</button></div></header>
+      <header class="topbar"><div><h1>内容创作工作台</h1><p>AI写作 · 公众号智能套版 · 智能配图 · SEO · 富文本发布</p></div><div class="top-actions"><span class="status-badge" id="statusBadge"><i></i> 正在连接</span><button class="ghost" id="exportHtml">导出 HTML</button><button class="primary small" id="copyWechat">复制公众号</button></div></header>
       <section class="content-grid"><div class="left-stage">
         <section class="composer card"><div class="composer-head"><div><span class="eyebrow">AI CONTENT DIRECTOR</span><h2>你想创作什么？</h2></div><div class="spark">✦</div></div>
           <textarea id="prompt" placeholder="例如：帮我写一篇学校秋季招生公众号文章，面向家长，突出正规办学、教学管理、食宿环境和限额报名，风格高级、可信、有紧迫感。"></textarea>
@@ -27,7 +27,7 @@
         </section>
 
         <section class="wx-studio card" id="wxStudio">
-          <div class="wx-studio-head"><div><span class="wx-badge">WECHAT DESIGN STUDIO</span><h3>公众号模板中心</h3><p>12 套视觉模板 · 8 类正文组件 · 字号行距 · 富文本一键复制</p></div><button class="wx-rich-copy" id="wxRichCopy">复制公众号 · 保留样式</button></div>
+          <div class="wx-studio-head"><div><span class="wx-badge">WECHAT AGENT STUDIO</span><h3>公众号智能编辑</h3><p>12 套视觉模板 · 8 类正文组件 · AI自动推荐模板 · 字号行距 · 富文本一键复制</p></div><div class="wx-studio-actions"><button class="wx-auto-layout" id="wxAutoLayout">✦ AI智能套版</button><button class="wx-rich-copy" id="wxRichCopy">复制公众号 · 保留样式</button></div></div>
           <div class="wx-template-strip" id="wxTemplateStrip"></div>
           <div class="wx-tools" id="wxTools">
             <span class="wx-tool-label">插入组件</span>
@@ -35,11 +35,11 @@
             <span class="wx-spacer"></span><span class="wx-tool-label">正文</span>
             <select class="wx-control" id="wxFontSize"><option value="12">12px</option><option value="13" selected>13px</option><option value="14">14px</option><option value="15">15px</option><option value="16">16px</option></select>
             <select class="wx-control" id="wxLineHeight"><option value="1.7">紧凑 1.7</option><option value="1.9" selected>舒适 1.9</option><option value="2.1">宽松 2.1</option><option value="2.3">大留白 2.3</option></select>
-            <span class="wx-hint">组件插入后可直接点文字修改</span>
+            <span class="wx-hint">生成微信公众号文章后，智能体会自动识别内容类型并套用合适模板</span>
           </div>
         </section>
 
-        <section class="result card" id="resultCard"><div class="result-toolbar"><div class="segmented"><button class="active" data-tab="article">文章</button><button data-tab="structure">结构</button><button data-tab="seo">SEO</button></div><div class="editor-actions"><button data-revise="polish">润色</button><button data-revise="rewrite">改写</button><button data-revise="humanize">自然化</button><button data-revise="concise">精简</button></div></div><div class="empty-state" id="emptyState"><div class="empty-icon">✦</div><h3>你的成品会出现在这里</h3><p>输入一句创作要求，AI会同时生成标题、正文结构、排版、配图计划和SEO信息；生成后可直接套用上方公众号模板。</p></div><div id="articleEditor" class="article-editor hidden" contenteditable="true"></div><div id="structurePanel" class="data-panel hidden"></div><div id="seoPanel" class="data-panel hidden"></div></section>
+        <section class="result card" id="resultCard"><div class="result-toolbar"><div class="segmented"><button class="active" data-tab="article">文章</button><button data-tab="structure">结构</button><button data-tab="seo">SEO</button></div><div class="editor-actions"><button data-revise="polish">润色</button><button data-revise="rewrite">改写</button><button data-revise="humanize">自然化</button><button data-revise="concise">精简</button></div></div><div class="empty-state" id="emptyState"><div class="empty-icon">✦</div><h3>你的成品会出现在这里</h3><p>输入一句创作要求，AI会同时生成标题、正文结构、排版、配图计划和SEO信息；微信公众号文章会自动进入智能套版。</p></div><div id="articleEditor" class="article-editor hidden" contenteditable="true"></div><div id="structurePanel" class="data-panel hidden"></div><div id="seoPanel" class="data-panel hidden"></div></section>
       </div><aside class="preview-stage"><section class="preview-card card"><div class="preview-head"><div><strong>手机实时预览</strong><span>微信公众号 · 模板同步</span></div><div class="theme-dots"><button data-theme="blue" class="blue active"></button><button data-theme="red" class="red"></button><button data-theme="green" class="green"></button><button data-theme="black" class="black"></button></div></div><div class="phone"><div class="phone-top"><span>9:41</span><span>●●●</span></div><div class="wechat-bar"><span>‹</span><strong>公众号预览</strong><span>•••</span></div><div class="phone-scroll" id="phonePreview"><div class="phone-empty"><div class="mini-cover">JIKE AI</div><h4>等待生成内容</h4><p>完成创作后，这里会即时显示手机端排版效果。</p></div></div></div></section><section class="score-card card"><div class="score-head"><strong>内容诊断</strong><span id="riskTag">未生成</span></div><div class="score-grid"><div><span>可读性</span><b id="readability">--</b></div><div><span>SEO</span><b id="seoScore">--</b></div><div><span>机械感风险</span><b id="aigcScore">--</b></div></div><p id="scoreAdvice">生成文章后自动给出优化建议。</p></section></aside></section>
     </main>
   </div>
