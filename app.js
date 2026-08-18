@@ -12,7 +12,9 @@ function toast(message){
 }
 
 async function fetchJson(url, options={}){
-  const r = await fetch(apiUrl(url), { headers:{'Content-Type':'application/json'}, ...options });
+  const opts={cache:'no-store',...options};
+  if(opts.body) opts.headers={'Content-Type':'application/json',...(opts.headers||{})};
+  const r = await fetch(apiUrl(url), opts);
   const data = await r.json().catch(()=>({}));
   if(!r.ok) throw new Error(data.error || '请求失败');
   return data;
@@ -38,7 +40,7 @@ function escapeHtml(s=''){
 function nl(s=''){ return escapeHtml(s).replace(/\n/g,'<br>'); }
 
 function articleHtml(a){
-  const sections = a.sections.map((s,i)=>`<section class="doc-section" data-index="${i}">
+  const sections = (a.sections||[]).map((s,i)=>`<section class="doc-section" data-index="${i}">
     <h2>${escapeHtml(s.heading)}</h2>
     <p>${nl(s.body)}</p>
     ${s.emphasis ? `<div class="emphasis">${escapeHtml(s.emphasis)}</div>`:''}
@@ -50,15 +52,26 @@ function articleHtml(a){
 }
 
 function previewHtml(a){
-  const sections = a.sections.map((s,i)=>`<h2>${escapeHtml(s.heading)}</h2><p>${nl(s.body)}</p>${s.emphasis?`<div class="em">${escapeHtml(s.emphasis)}</div>`:''}<div class="pic" data-preview-image="${i}">AI配图 · ${escapeHtml(s.imageCaption || '')}</div>`).join('');
+  const sections = (a.sections||[]).map((s,i)=>`<h2>${escapeHtml(s.heading)}</h2><p>${nl(s.body)}</p>${s.emphasis?`<div class="em">${escapeHtml(s.emphasis)}</div>`:''}<div class="pic" data-preview-image="${i}">AI配图 · ${escapeHtml(s.imageCaption || '')}</div>`).join('');
   return `<article class="phone-article"><div class="cover"><b>${escapeHtml(a.coverCopy || a.title)}</b><span>JIKE AI · CONTENT STUDIO</span></div><h1>${escapeHtml(a.title)}</h1><div class="sub">${escapeHtml(a.subtitle)}</div><div class="sum">${escapeHtml(a.summary)}</div>${sections}<p><b>${escapeHtml(a.closing)}</b></p></article>`;
 }
 
 function structureHtml(a){
-  return `<div class="row"><label>标题</label><strong>${escapeHtml(a.title)}</strong></div>` + a.sections.map((s,i)=>`<div class="row"><label>第 ${i+1} 节</label><strong>${escapeHtml(s.heading)}</strong><p>${escapeHtml(s.imageCaption || '')}</p></div>`).join('') + `<div class="row"><label>结尾 CTA</label><p>${escapeHtml(a.cta)}</p></div>`;
+  return `<div class="row"><label>标题</label><strong>${escapeHtml(a.title)}</strong></div>` + (a.sections||[]).map((s,i)=>`<div class="row"><label>第 ${i+1} 节</label><strong>${escapeHtml(s.heading)}</strong><p>${escapeHtml(s.imageCaption || '')}</p></div>`).join('') + `<div class="row"><label>结尾 CTA</label><p>${escapeHtml(a.cta)}</p></div>`;
 }
 function seoHtml(a){
-  return `<div class="row"><label>SEO Description</label><p>${escapeHtml(a.seoDescription)}</p></div><div class="row"><label>关键词</label>${a.keywords.map(k=>`<span class="tag">${escapeHtml(k)}</span>`).join('')}</div><div class="row"><label>封面文案</label><strong>${escapeHtml(a.coverCopy)}</strong></div><div class="row"><label>语言机械感评估</label><strong>${a.aigcRisk}/100</strong><p>${escapeHtml(a.aigcAdvice)}</p></div>`;
+  return `<div class="row"><label>SEO Description</label><p>${escapeHtml(a.seoDescription)}</p></div><div class="row"><label>关键词</label>${(a.keywords||[]).map(k=>`<span class="tag">${escapeHtml(k)}</span>`).join('')}</div><div class="row"><label>封面文案</label><strong>${escapeHtml(a.coverCopy)}</strong></div><div class="row"><label>语言机械感评估</label><strong>${a.aigcRisk}/100</strong><p>${escapeHtml(a.aigcAdvice)}</p></div>`;
+}
+
+function currentWechatContext(){
+  return {
+    article: state.article,
+    prompt: $('#prompt')?.value || '',
+    platform: $('#platform')?.value || '',
+    style: $('#style')?.value || '',
+    length: $('#length')?.value || '',
+    brand: $('#brand')?.value || ''
+  };
 }
 
 function render(){
@@ -76,6 +89,7 @@ function render(){
   $('#riskTag').textContent = risk <= 35 ? '较自然' : risk <= 60 ? '可优化' : '风险偏高';
   $('#scoreAdvice').textContent = a.aigcAdvice || '建议人工终审。';
   switchTab(state.tab);
+  window.dispatchEvent(new CustomEvent('jike:article-rendered',{detail:currentWechatContext()}));
 }
 
 function switchTab(tab){
@@ -94,7 +108,9 @@ async function generate(){
     const data = await fetchJson('/api/generate',{method:'POST',body:JSON.stringify({
       prompt, platform:$('#platform').value, style:$('#style').value, length:$('#length').value, brand:$('#brand').value, autoImage:$('#autoImage').classList.contains('on')
     })});
-    state.article=data.article; render(); toast(data.mode==='demo'?'演示成品已生成':'AI 成品已生成');
+    state.article=data.article; render();
+    const auto=window.JikeWechatStudio?.getCurrentTemplate?.();
+    toast(auto ? `AI 成品已生成 · 已智能套版` : (data.mode==='demo'?'演示成品已生成':'AI 成品已生成'));
   }catch(e){ toast(e.message); }
   finally{ btn.disabled=false; btn.innerHTML='<span>✦</span> 一键生成成品'; }
 }
@@ -108,11 +124,9 @@ async function revise(action){
   }catch(e){toast(e.message)}
 }
 
-function syncEditorBack(){}
-
 async function copyWechat(){
   if(!state.article) return toast('请先生成文章');
-  syncEditorBack();
+  if(window.JikeWechatStudio?.richCopy) return window.JikeWechatStudio.richCopy();
   const html = $('#articleEditor').innerHTML;
   const plain = $('#articleEditor').innerText;
   try{
@@ -126,14 +140,14 @@ async function copyWechat(){
 
 function exportHtml(){
   if(!state.article) return toast('请先生成文章');
-  const body = $('#articleEditor').innerHTML;
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(state.article.title)}</title><style>body{max-width:720px;margin:40px auto;font-family:Arial,'Microsoft Yahei';line-height:1.9;color:#263142;padding:0 20px}h1{font-size:30px}h2{margin-top:30px}.summary,.emphasis{padding:14px;border-left:3px solid ${themeColors[state.theme]};background:#f6f8fd}.image-plan{padding:18px;background:#f7f8fb;border:1px dashed #ccd3df;border-radius:12px;margin:14px 0}.cta{display:inline-block;background:${themeColors[state.theme]};color:#fff;padding:8px 14px;border-radius:99px}</style></head><body>${body}</body></html>`;
-  const blob = new Blob([html],{type:'text/html;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='极刻云AI文章.html'; a.click(); URL.revokeObjectURL(a.href); toast('HTML 已导出');
+  const body = window.JikeWechatStudio?.buildWechatHtml?.() || $('#articleEditor').innerHTML;
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(state.article.title)}</title><style>body{max-width:720px;margin:40px auto;font-family:Arial,'Microsoft Yahei';line-height:1.9;color:#263142;padding:0 20px}</style></head><body>${body}</body></html>`;
+  const blob = new Blob([html],{type:'text/html;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='极刻云公众号成品.html'; a.click(); URL.revokeObjectURL(a.href); toast('公众号 HTML 已导出');
 }
 
 async function generateImage(index){
   if(!state.article) return;
-  const s=state.article.sections[index]; if(!s) return;
+  const s=(state.article.sections||[])[index]; if(!s) return;
   toast('正在生成配图…');
   try{
     const data=await fetchJson('/api/image',{method:'POST',body:JSON.stringify({prompt:s.imagePrompt})});
@@ -160,7 +174,10 @@ $$('.segmented button').forEach(b=>b.addEventListener('click',()=>switchTab(b.da
 $$('[data-revise]').forEach(b=>b.addEventListener('click',()=>revise(b.dataset.revise)));
 $('#copyWechat').addEventListener('click',copyWechat);
 $('#exportHtml').addEventListener('click',exportHtml);
-$('#newTask').addEventListener('click',()=>{state.article=null;$('#prompt').value='';$('#emptyState').classList.remove('hidden');$('#articleEditor').classList.add('hidden');$('#structurePanel').classList.add('hidden');$('#seoPanel').classList.add('hidden');$('#phonePreview').innerHTML='<div class="phone-empty"><div class="mini-cover">JIKE AI</div><h4>等待生成内容</h4><p>完成创作后，这里会即时显示手机端排版效果。</p></div>';toast('已新建创作');});
+$('#newTask').addEventListener('click',()=>{
+  state.article=null;$('#prompt').value='';$('#emptyState').classList.remove('hidden');$('#articleEditor').classList.add('hidden');$('#structurePanel').classList.add('hidden');$('#seoPanel').classList.add('hidden');$('#phonePreview').innerHTML='<div class="phone-empty"><div class="mini-cover">JIKE AI</div><h4>等待生成内容</h4><p>完成创作后，这里会即时显示手机端排版效果。</p></div>';
+  window.dispatchEvent(new CustomEvent('jike:new-task')); toast('已新建创作');
+});
 
 $$('.theme-dots button').forEach(b=>b.addEventListener('click',()=>{
   state.theme=b.dataset.theme; document.documentElement.style.setProperty('--preview',themeColors[state.theme]);
@@ -174,7 +191,13 @@ $$('.nav-item').forEach(b=>b.addEventListener('click',()=>{
   if(a==='humanize' && state.article){revise('humanize');return}
   if(a==='image' && state.article){generateImage(0);return}
   if(a==='title' && state.article){switchTab('seo');toast('标题、封面文案已在SEO面板');return}
-  if(a==='layout' && state.article){switchTab('article');toast('可在右侧切换主题色查看排版');return}
+  if(a==='layout'){
+    if(state.article) switchTab('article');
+    window.dispatchEvent(new CustomEvent('jike:open-wechat-studio'));
+    toast(state.article?'公众号编辑已打开，可智能套版':'先生成文章，再进入公众号智能套版');
+    if(!state.article) $('#prompt').focus();
+    return;
+  }
   $('#prompt').focus();
 }));
 
