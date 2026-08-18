@@ -28,6 +28,8 @@
   let fontSize = Number(localStorage.getItem('jike-wx-font') || 13);
   let lineHeight = Number(localStorage.getItem('jike-wx-line') || 1.9);
   let currentTemplate = localStorage.getItem('jike-wx-template') || 'business-blue';
+  let userPicked = false;
+  let lastContext = {};
 
   const $ = s => document.querySelector(s);
   const $$ = s => [...document.querySelectorAll(s)];
@@ -46,13 +48,16 @@
   function applyTypography(){
     const editor=$('#articleEditor'); if(!editor) return;
     editor.style.setProperty('--wx-line',String(lineHeight));
+    editor.style.setProperty('--wx-font',fontSize+'px');
     editor.style.lineHeight=String(lineHeight);
     editor.querySelectorAll('p').forEach(p=>{p.style.fontSize=fontSize+'px';p.style.lineHeight=String(lineHeight)});
     editor.querySelectorAll('.summary,.emphasis,.wx-highlight,.wx-notice,.wx-quote,.wx-step-body,.wx-mini-card').forEach(x=>x.style.lineHeight=String(lineHeight));
   }
 
-  function applyTemplate(id, silent=false){
+  function applyTemplate(id, silent=false, fromUser=false){
+    if(!templates.some(t=>t.id===id)) id='business-blue';
     currentTemplate=id;
+    if(fromUser) userPicked=true;
     localStorage.setItem('jike-wx-template',id);
     const editor=$('#articleEditor');
     const phone=$('#phonePreview');
@@ -61,6 +66,36 @@
     $$('.wx-template').forEach(b=>b.classList.toggle('active',b.dataset.wxTemplate===id));
     applyTypography();
     if(!silent){const t=templates.find(x=>x.id===id);toast(`已套用：${t?.name||'公众号模板'}`)}
+    return id;
+  }
+
+  function recommendation(ctx={}){
+    const a=ctx.article||{};
+    const text=[ctx.prompt,ctx.style,ctx.platform,ctx.brand,a.title,a.subtitle,a.summary,...(a.keywords||[])].filter(Boolean).join(' ');
+    if(/招生|报名|录取|补录|学位|学费|优惠|限额/.test(text)) return 'admission-red';
+    if(/政务|政策|通知|公告|简报|会议|党建|政府/.test(text)) return 'gov-navy';
+    if(/人工智能|AI|智能体|科技|SaaS|软件|产品发布|数字化|大模型/.test(text)) return 'tech-purple';
+    if(/节日|春节|国庆|中秋|元旦|福利|促销|庆典/.test(text)) return 'festival-red';
+    if(/亲子|家庭|陪伴|儿童|育儿|家长课堂/.test(text)) return 'parent-orange';
+    if(/传统|国风|文化|诗词|非遗|节气|历史/.test(text)) return 'china-red';
+    if(/健康|自然|环保|生活方式|绿色/.test(text)) return 'fresh-green';
+    if(/校园|社团|运动会|开放日|体验课|班级活动/.test(text)) return 'campus-blue';
+    if(/学校|教育|学生|教师|成长|课堂|学习/.test(text)) return 'school-book';
+    if(/人物|访谈|品牌故事|高端|奢华|创始人/.test(text)) return 'black-gold';
+    if(/深度|观点|洞察|分析|评论|方法论/.test(text)) return 'minimal-gray';
+    if(String(ctx.style||'').includes('政务')) return 'gov-navy';
+    if(String(ctx.style||'').includes('教育')) return 'school-book';
+    if(String(ctx.style||'').includes('高级')) return 'business-blue';
+    return 'business-blue';
+  }
+
+  function smartLayout(ctx=lastContext, silent=false){
+    lastContext=ctx||{};
+    const id=recommendation(lastContext);
+    userPicked=false;
+    applyTemplate(id,silent,false);
+    if(!silent){const t=templates.find(x=>x.id===id);toast(`AI 已推荐并套用：${t?.name||'模板'}`)}
+    return id;
   }
 
   function insertBlock(type){
@@ -77,6 +112,7 @@
 
   function buildWechatHtml(){
     const src=$('#articleEditor');
+    if(!src) return '';
     const clone=src.cloneNode(true);
     const srcNodes=[src,...src.querySelectorAll('*')];
     const cloneNodes=[clone,...clone.querySelectorAll('*')];
@@ -90,9 +126,7 @@
       target.removeAttribute('contenteditable');
       [...target.attributes].forEach(a=>{if(a.name.startsWith('data-')) target.removeAttribute(a.name)});
     });
-    clone.removeAttribute('contenteditable');
-    clone.removeAttribute('class');
-    clone.removeAttribute('id');
+    clone.removeAttribute('contenteditable'); clone.removeAttribute('class'); clone.removeAttribute('id');
     return clone.innerHTML;
   }
 
@@ -100,42 +134,44 @@
     const editor=$('#articleEditor');
     if(!editor || editor.classList.contains('hidden') || !editor.innerText.trim()) return toast('请先生成文章');
     applyTypography();
-    const html=buildWechatHtml();
-    const plain=editor.innerText;
+    const html=buildWechatHtml(); const plain=editor.innerText;
     try{
       if(window.ClipboardItem && navigator.clipboard?.write){
         await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([plain],{type:'text/plain'})})]);
         toast('已复制公众号富文本，粘贴即可保留样式');
-      }else{
-        await navigator.clipboard.writeText(plain);toast('浏览器不支持富文本剪贴板，已复制文字');
-      }
-    }catch(e){
-      try{await navigator.clipboard.writeText(plain);toast('已复制文字内容')}catch{toast('复制失败，请允许剪贴板权限')}
-    }
+      }else{await navigator.clipboard.writeText(plain);toast('浏览器不支持富文本剪贴板，已复制文字')}
+    }catch(e){try{await navigator.clipboard.writeText(plain);toast('已复制文字内容')}catch{toast('复制失败，请允许剪贴板权限')}}
+  }
+
+  function openStudio(){
+    $('#wxStudio')?.scrollIntoView({behavior:'smooth',block:'start'});
+    $('#wxStudio')?.classList.add('wx-focus');
+    setTimeout(()=>$('#wxStudio')?.classList.remove('wx-focus'),1200);
   }
 
   function init(){
-    renderTemplates();
-    applyTemplate(currentTemplate,true);
+    renderTemplates(); applyTemplate(currentTemplate,true);
     const fs=$('#wxFontSize'), lh=$('#wxLineHeight');
-    if(fs) fs.value=String(fontSize);
-    if(lh) lh.value=String(lineHeight);
-    $('#wxTemplateStrip')?.addEventListener('click',e=>{const b=e.target.closest('[data-wx-template]');if(b)applyTemplate(b.dataset.wxTemplate)});
+    if(fs) fs.value=String(fontSize); if(lh) lh.value=String(lineHeight);
+    $('#wxTemplateStrip')?.addEventListener('click',e=>{const b=e.target.closest('[data-wx-template]');if(b)applyTemplate(b.dataset.wxTemplate,false,true)});
     $('#wxTools')?.addEventListener('click',e=>{const b=e.target.closest('[data-wx-block]');if(b)insertBlock(b.dataset.wxBlock)});
     $('#wxRichCopy')?.addEventListener('click',richCopy);
+    $('#wxAutoLayout')?.addEventListener('click',()=>smartLayout(lastContext,false));
     fs?.addEventListener('change',()=>{fontSize=Number(fs.value);localStorage.setItem('jike-wx-font',String(fontSize));applyTypography();toast('正文字号已调整')});
     lh?.addEventListener('change',()=>{lineHeight=Number(lh.value);localStorage.setItem('jike-wx-line',String(lineHeight));applyTypography();toast('正文行距已调整')});
-    const editor=$('#articleEditor');
-    if(editor){
-      const observer=new MutationObserver(()=>{applyTemplate(currentTemplate,true)});
-      observer.observe(editor,{childList:true,subtree:false});
-    }
-    const phone=$('#phonePreview');
-    if(phone){
-      const observer2=new MutationObserver(()=>{phone.classList.add('wx-pro');phone.dataset.wxTemplate=currentTemplate});
-      observer2.observe(phone,{childList:true});
-    }
+    const editor=$('#articleEditor'); if(editor){new MutationObserver(()=>applyTemplate(currentTemplate,true)).observe(editor,{childList:true,subtree:false})}
+    const phone=$('#phonePreview'); if(phone){new MutationObserver(()=>{phone.classList.add('wx-pro');phone.dataset.wxTemplate=currentTemplate}).observe(phone,{childList:true})}
   }
+
+  window.addEventListener('jike:article-rendered',e=>{
+    lastContext=e.detail||{};
+    if(String(lastContext.platform||'').includes('微信公众号') && !userPicked) smartLayout(lastContext,true);
+    else applyTemplate(currentTemplate,true);
+  });
+  window.addEventListener('jike:open-wechat-studio',openStudio);
+  window.addEventListener('jike:new-task',()=>{userPicked=false;lastContext={}});
+
+  window.JikeWechatStudio={templates,applyTemplate,smartLayout,recommendTemplate:recommendation,insertBlock,richCopy,buildWechatHtml,openStudio,applyTypography,getCurrentTemplate:()=>currentTemplate};
 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
 })();
