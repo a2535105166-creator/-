@@ -1,7 +1,7 @@
 export function getProvider(){
   const name=(process.env.AI_PROVIDER||'doubao').toLowerCase();
   const all={
-    doubao:{base:process.env.AI_BASE_URL||'https://ark.cn-beijing.volces.com/api/v3',key:process.env.AI_API_KEY||process.env.ARK_API_KEY||'',model:process.env.AI_MODEL||'doubao-seed-2-0-pro-260215'},
+    doubao:{base:process.env.AI_BASE_URL||'https://ark.cn-beijing.volces.com/api/v3',key:process.env.AI_API_KEY||process.env.ARK_API_KEY||'',model:process.env.AI_MODEL||'doubao-seed-2-1-pro-260628'},
     deepseek:{base:process.env.AI_BASE_URL||'https://api.deepseek.com',key:process.env.AI_API_KEY||process.env.DEEPSEEK_API_KEY||'',model:process.env.AI_MODEL||'deepseek-chat'},
     qwen:{base:process.env.AI_BASE_URL||'https://dashscope.aliyuncs.com/compatible-mode/v1',key:process.env.AI_API_KEY||process.env.DASHSCOPE_API_KEY||'',model:process.env.AI_MODEL||'qwen-plus'}
   };
