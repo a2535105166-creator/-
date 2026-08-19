@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <title>极刻云 · AI公众号智能体</title>
+  <title>极刻云 · 豆包AI公众号智能体</title>
   <link rel="stylesheet" href="./styles.css" />
   <link rel="stylesheet" href="./wechat-studio.css" />
   <link rel="stylesheet" href="./editor-plus.css" />
@@ -16,10 +16,10 @@
       <button class="nav-link active" data-topnav="layout">公众号排版</button>
       <button class="nav-link" data-topnav="write">AI写作</button>
       <button class="nav-link" data-topnav="detect">AIGC检测</button>
-      <button class="nav-link" data-topnav="agent">AI智能体</button>
+      <button class="nav-link" data-topnav="agent">豆包智能体</button>
     </nav>
     <div class="header-actions">
-      <span class="connect-pill" id="statusBadge"><i></i> AI智能路由检测中</span>
+      <span class="connect-pill" id="statusBadge"><i></i> 豆包连接检测中</span>
       <button class="new-file-btn" id="newTask">✎ 新建文件</button>
       <button class="account-btn">◎ 极刻云工作台</button>
     </div>
@@ -97,7 +97,7 @@
       </div>
 
       <div class="ai-writer-panel hidden" id="aiWriterPanel">
-        <div class="ai-writer-head"><div><b>极刻 AI 主编</b><span>真实大模型：Doubao Seed 2.1 Pro / GPT-5.4 Mini</span></div><button id="closeAiWriter">×</button></div>
+        <div class="ai-writer-head"><div><b>极刻 AI 主编</b><span>真实大模型：Doubao Seed 2.1 Pro</span></div><button id="closeAiWriter">×</button></div>
         <textarea id="prompt" placeholder="例如：写一篇学校秋季招生公众号文章，面向家长，突出教学管理、食宿环境、特色课程和限额报名。"></textarea>
         <div class="ai-options">
           <select id="platform"><option>微信公众号</option><option>小红书</option><option>抖音图文</option><option>SEO博客</option></select>
@@ -105,14 +105,14 @@
           <select id="length"><option>中等 · 1200字</option><option>精简 · 600字</option><option>深度 · 2000字</option><option>长文 · 3000字+</option></select>
           <input id="brand" placeholder="品牌/学校名称（可选）" />
           <label class="auto-image"><input id="autoImage" type="checkbox" checked /> 自动规划配图</label>
-          <button id="generate" class="generate-main">✦ 一键生成</button>
+          <button id="generate" class="generate-main">✦ 豆包一键生成</button>
         </div>
       </div>
 
       <input id="docTitle" class="doc-title" value="未命名公众号文章" placeholder="输入文章标题" />
       <div class="canvas-wrap">
         <article id="articleEditor" class="article-editor wx-pro" contenteditable="true" data-wx-template="business-blue">
-          <div class="editor-placeholder" id="emptyState"><div class="placeholder-star">✦</div><h2>开始创作你的公众号文章</h2><p>右侧直接告诉“极刻内容智能体”你想要的结果，它会调用写作、排版、配图、优化、检测和预览工具直接完成。</p><button id="emptyGenerateBtn">用 AI 写文章</button></div>
+          <div class="editor-placeholder" id="emptyState"><div class="placeholder-star">✦</div><h2>开始创作你的公众号文章</h2><p>右侧直接告诉“极刻豆包智能体”你想要的结果，它会调用豆包写作、排版、配图、优化、检测和预览工具直接完成。</p><button id="emptyGenerateBtn">用豆包写文章</button></div>
         </article>
       </div>
       <div class="editor-statusbar"><span id="wordCount">0 字</span><span>自动保存</span><span id="templateName">极简商务</span></div>
@@ -121,10 +121,10 @@
     <aside class="right-panel">
       <div class="right-iconbar"><button class="active">✦</button><button>▧</button><button>▤</button><button>⌕</button></div>
       <div class="right-main">
-        <div class="image-source-tabs"><button class="active" data-imgtab="ai">✦ AI生图</button><button data-imgtab="unsplash">Unsplash</button><button data-imgtab="pexels">Pexels</button></div>
+        <div class="image-source-tabs"><button class="active" data-imgtab="ai">✦ Seedream生图</button><button data-imgtab="unsplash">Unsplash</button><button data-imgtab="pexels">Pexels</button></div>
         <section class="image-tab-panel" data-imgpanel="ai">
-          <div class="image-chat-card"><div class="image-chat-head"><strong>▧ AI 生图助手</strong><span>Seedream / GPT Image 2</span></div><div class="image-settings"><select id="imageQuality"><option>2K 高清</option><option>1K 快速</option></select><select id="imageCount"><option>数量 1</option></select></div></div>
-          <div class="chat-window" id="imageChat"><div class="assistant-bubble">输入提示词即可调用真实图片模型生成公众号配图。</div></div>
+          <div class="image-chat-card"><div class="image-chat-head"><strong>▧ 豆包 AI 生图助手</strong><span>Seedream</span></div><div class="image-settings"><select id="imageQuality"><option>2K 高清</option><option>1K 快速</option></select><select id="imageCount"><option>数量 1</option></select></div></div>
+          <div class="chat-window" id="imageChat"><div class="assistant-bubble">输入提示词即可调用豆包 Seedream 生成公众号配图。</div></div>
           <div class="image-prompt-box"><textarea id="imagePrompt" placeholder="例如：现代小学明亮教室，真实摄影，高级教育宣传感，无文字"></textarea><div class="image-actions"><label>↑ 上传参考图<input id="imageRefUpload" type="file" accept="image/*" hidden /></label><button id="generateRightImage">发送生成</button></div></div>
           <div id="imageGallery" class="generated-gallery"></div>
         </section>
@@ -136,10 +136,9 @@
 
   <div class="modal hidden" id="previewModal"><div class="modal-card preview-modal-card"><div class="modal-head"><b>公众号手机预览</b><button data-closemodal>×</button></div><div class="phone-preview"><div class="phone-bar">9:41 <span>●●●</span></div><div class="wechat-title">‹ <b>公众号预览</b> •••</div><div id="phonePreview" class="phone-scroll"></div></div></div></div>
   <div class="modal hidden" id="detectModal"><div class="modal-card"><div class="modal-head"><b>AIGC 内容检测</b><button data-closemodal>×</button></div><div id="detectContent" class="detect-content"></div></div></div>
-  <div class="modal hidden" id="agentModal"><div class="modal-card"><div class="modal-head"><b>AI智能体</b><button data-closemodal>×</button></div><div class="agent-content"><div class="agent-row"><span>文字模型</span><b>Doubao Seed 2.1 Pro / GPT-5.4 Mini</b></div><div class="agent-row"><span>图片模型</span><b>Seedream / GPT Image 2</b></div><div class="agent-row"><span>接口状态</span><b id="agentStatus">检测中...</b></div></div></div></div>
+  <div class="modal hidden" id="agentModal"><div class="modal-card"><div class="modal-head"><b>豆包智能体</b><button data-closemodal>×</button></div><div class="agent-content"><div class="agent-row"><span>文字模型</span><b>Doubao Seed 2.1 Pro</b></div><div class="agent-row"><span>图片模型</span><b>Doubao Seedream</b></div><div class="agent-row"><span>智能体接口</span><b>/api/agent</b></div><div class="agent-row"><span>接口状态</span><b id="agentStatus">检测中...</b></div></div></div></div>
 
   <button id="wxRichCopy" class="hidden" aria-hidden="true"></button><div id="sideStatus" class="hidden"></div><div class="toast" id="toast"></div>
-  <script src="https://js.puter.com/v2/"></script>
   <script src="./config.js"></script>
   <script src="./wechat-studio.js"></script>
   <script type="module" src="./app.js"></script>
