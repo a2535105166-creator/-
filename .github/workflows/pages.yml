@@ -24,21 +24,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Harden live API connection
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('app.js')
-          s=p.read_text(encoding='utf-8')
-          s=s.replace("const API_BASE = String(window.JIKE_API_BASE || '').replace(/\\/$/, '');", "const API_BASE = String(window.JIKE_API_BASE || 'https://api.jikeyun.cn').replace(/\\/$/, '');")
-          old="const r = await fetch(apiUrl(url), { headers:{'Content-Type':'application/json'}, ...options });"
-          new="const opts={cache:'no-store',...options}; if(opts.body){opts.headers={'Content-Type':'application/json',...(opts.headers||{})};} const r = await fetch(apiUrl(url), opts);"
-          if old in s:
-              s=s.replace(old,new)
-          p.write_text(s,encoding='utf-8')
-          PY
-
       - name: Diagnose formal API domain
         shell: bash
         run: |
@@ -57,6 +42,7 @@ jobs:
           sed -i "s#./styles.css#./styles.css?v=${VERSION}#g" index.html
           sed -i "s#./wechat-studio.js#./wechat-studio.js?v=${VERSION}#g" index.html
           sed -i "s#./wechat-studio.css#./wechat-studio.css?v=${VERSION}#g" index.html
+          sed -i "s#./editor-plus.css#./editor-plus.css?v=${VERSION}#g" index.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
